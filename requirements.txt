@@ -1,2 +1,4 @@
 fastapi
 uvicorn
+requests
+python-dotenv # Python 코드에서 환경 변수를 읽을 수 있도록 설치
