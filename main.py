@@ -1,4 +1,5 @@
 from fastapi import FastAPI, UploadFile
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from module_friendship import (
     analyze_sentiments, organize_dialogues, parse_dialogues, 
@@ -9,7 +10,6 @@ from module_friendship import (
 
 app = FastAPI()
 
-# CORS 설정
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -18,8 +18,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-@app.post("/files/")
+@app.post("/friendship")
 async def upload_file(file: UploadFile):
     try:
         contents = await file.read()
@@ -65,21 +64,46 @@ async def upload_file(file: UploadFile):
             rules3 = rule3(sentiment_avg_scores_percentage, emotions_of_interest2)
             
             result = {
-                "individual_results(개별 감정 결과, 이름, 시간, 채팅, 감정, 스코어, 누적 변화량)": names,
-                "individual_score_lists_for_graph(그래프로 표현할 누적 변화량)": scoreList2,
-                "sentiment_avg_scores(사용자별 감정 평균 점수)": sentiment_avg_scores,
-                "sentiment_avg_scores_percentage(사용자별 감정 평균 점수 백분율로 표시)": sentiment_avg_scores_percentage,
-                "individual_scores(각 사용자의 감정 평균 점수의 총합 - 최대 100)": check_score,
-                "friendship_scores(최종 우정점수, 결과페이지 ℃표현할 때 사용할 점수)": friendship_scores,
+                #개별 감정 결과, 이름, 시간, 채팅, 감정, 스코어, 누적 변화량
+                "individual_results": names,
+                
+                #그래프로 표현할 누적 변화량
+                "individual_score_lists_for_graph": scoreList2,
+                
+                #사용자별 감정 평균 점수
+                "sentiment_avg_scores": sentiment_avg_scores,
+                
+                #사용자별 감정 평균 점수 백분율로 표시
+                "sentiment_avg_scores_percentage": sentiment_avg_scores_percentage,
+                
+                #각 사용자의 감정 평균 점수의 총합 - 최대 100
+                "individual_scores": check_score,
+                
+                #최종 우정점수, 결과페이지 ℃표현할 때 사용할 점수
+                "friendship_scores": friendship_scores,
+
                 "resultOk": resultOk,
-                "우선순위" : filtered_results,
-                "누가 누구를 더 좋아한다 문구" : compare,
-                "나레이션" : narration,
-                "기준1 - 누가 총을 대신 맞아줄 것인가?" : rules1,
-                "기준2 - 흔들리지 않는 편안한 침대 같은 사람" : rules2,
-                "기준3 - 뒷 통수 칠 사람" : rules3
+                
+                #우선순위
+                "Rankings" : filtered_results,
+                
+                #누가 누구를 더 좋아한다
+                "more_friendly" : compare,
+                
+                #나레이션
+                "narration" : narration,
+                
+                #기준1 - 누가 총을 대신 맞아줄 것인가?
+                "gun" : rules1,
+                
+                #기준2 - 흔들리지 않는 편안한 침대 같은 사람
+                "bed" : rules2,
+                
+                #기준3 - 뒷 통수 칠 사람
+                "betrayer" : rules3
             }
         #print("Final Result in main.py:", result)  # 최종 결과 로그 추가
+
         return result
 
     except Exception as e:

@@ -7,7 +7,7 @@ model="nlp04/korean_sentiment_analysis_kcelectra"
 
 classifier = pipeline("sentiment-analysis", model="nlp04/korean_sentiment_analysis_kcelectra")
 
-# 카카오톡 텍스트 파일 내부 내용 형식 가공1
+# 데이터 가공 작업 1 - 카카오톡 데이터 파일 내용 분리
 def parse_dialogues(lines):
     result = []
     current_date = None
@@ -31,9 +31,7 @@ def parse_dialogues(lines):
             result.append(line.strip())
     return result
 
-
-
-# 카카오톡 텍스트 파일 내부 내용 형식 가공2
+# 데이터 가공 작업 2 - 분리된 내용 새로운 형태로 정의
 def organize_dialogues(parsed_lines):
     pattern = re.compile(r'\[(.*?)\] \[(.*?)\] (.*)')
     dialogues = defaultdict(list)
@@ -58,7 +56,6 @@ def organize_dialogues(parsed_lines):
                 combined_dialogues[-1] = (current_name, current_time, updated_message)
     
     return dialogues, combined_dialogues
-
 
 
 # 감정 분석
@@ -123,7 +120,6 @@ def analyze_sentiments(dialogues, combined_dialogues):
     return names, score, scoreList, mixed_results, sentiment_avg_scores, check_score, scoreList2
 
 
-
 # 감정스코어 평균합산에 대한 백분율을 만드는 코드
 def calculate_percentage_scores(sentiment_avg_scores):
     percentage_scores = {}  # 백분율 스코어를 저장할 딕셔너리 초기화
@@ -133,7 +129,6 @@ def calculate_percentage_scores(sentiment_avg_scores):
         total_score = sum(sentiments.values()) # 모든 감정 점수의 합을 계산
         percentage_scores[name] = {sentiment: round((score / total_score) * 100, 2) for sentiment, score in sentiments.items()}  # 각 감정에 대해 백분율을 계산하여 딕셔너리에 저장
     return percentage_scores # 백분율 스코어를 반환
-
 
 
 # 우정도 수치 계산
@@ -173,7 +168,6 @@ def calculate_friendship(sentiment_scores):
     return friendship_score  # 계산된 호감도 점수를 반환
 
 
-
 def convert_to_24h_time(am_pm, time):
     try:
         # 시간과 분을 ':' 기준으로 분리하고 정수형으로 변환
@@ -192,7 +186,6 @@ def convert_to_24h_time(am_pm, time):
         print(f"Error converting time: {e}")
         print(f"am_pm: {am_pm}, time: {time}")
         raise e
-
 
 
 # 날짜 문자열에서 일(day)과 시간(time)을 추출하는 함수
@@ -219,8 +212,7 @@ def extract_day_and_time(date_str):
         #print(f"date_str: {date_str}")
         return None, None, None
 
-
-
+    
 # 대화 목록을 날짜별로 그룹화하는 함수
 def group_messages_by_date(dialogues):
     grouped_messages = defaultdict(list)
@@ -234,8 +226,27 @@ def group_messages_by_date(dialogues):
     return grouped_messages
 
 
+#누가 누구를 더 좋아한다
+def compare_scores(individual_scores):
+    # 사용자 이름을 추출
+    users = list(individual_scores.keys())
+    
+    # 각 사용자의 점수를 가져오기
+    user1 = users[0]
+    user2 = users[1]
+    score1 = individual_scores[user1]
+    score2 = individual_scores[user2]
+    
+    # 점수 비교 후 결과 반환
+    if score1 > score2:
+        return f"{user1}님이 {user2}님을 더 친구라고 생각합니다."
+    elif score2 > score1:
+        return f"{user2}님이 {user1}님을 더 친구라고 생각합니다."
+    else:
+        return f"{user1}님과 {user2}님은 같은 우정도를 가지고 있습니다."
 
-#나레이션 멘트
+
+#나레이션 멘트 날리기
 def narration_emotion_changes(score_list):
     result = []
     
@@ -260,48 +271,6 @@ def narration_emotion_changes(score_list):
             result.append("아~주 무난한 친구들 간의 대화네요")
 
     return result
-
-
-
-#누가 누구를 더 좋아한다 문구
-def compare_scores(individual_scores):
-    # 사용자 이름을 추출
-    users = list(individual_scores.keys())
-    
-    # 각 사용자의 점수를 가져오기
-    user1 = users[0]
-    user2 = users[1]
-    score1 = individual_scores[user1]
-    score2 = individual_scores[user2]
-    
-    # 점수 비교 후 결과 반환
-    if score1 > score2:
-        return f"{user1}님이 {user2}님을 더 친구라고 생각합니다."
-    elif score2 > score1:
-        return f"{user2}님이 {user1}님을 더 친구라고 생각합니다."
-    else:
-        return f"{user1}님과 {user2}님은 같은 우정도를 가지고 있습니다."
-
-
-
-# 감정 우선순위 5개 나열
-# 우선순위 평균점수가 높은 순서대로 나열
-def filter_emotions(sentiment_scores):
-    # 정렬할 감정 라벨 및 우선순위
-    emotions_to_show = ['고마운', '기쁨(행복한)', '즐거운(신나는)', '일상적인', '설레는(기대하는)']
-    
-    # 각 사용자별로 감정 점수를 큰 순서대로 정렬
-    sorted_emotions = {user: sorted(scores.items(), key=lambda item: item[1], reverse=True) for user, scores in sentiment_scores.items()}
-    
-    # 필터링된 결과를 저장할 딕셔너리
-    filtered_emotions = {}
-
-    # 각 사용자별로 필터링된 감정 점수만 선택하여 저장
-    for user, emotions in sorted_emotions.items():
-        filtered_emotions[user] = [(emotion, score) for emotion, score in emotions if emotion in emotions_to_show]
-
-    return filtered_emotions
-
 
 
 #기준1 - 누가 총을 대신 맞아줄 것인가?
@@ -413,3 +382,4 @@ def rule3(data, emotions_of_interest):
         
 
     return final_result
+
